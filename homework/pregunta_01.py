@@ -54,8 +54,8 @@ def pregunta_01():
 
     * phrase: Texto de la frase. hay una frase por cada archivo de texto.
     * sentiment: Sentimiento de la frase. Puede ser "positive", "negative"
-      o "neutral". Este corresponde al nombre del directorio donde se
-      encuentra ubicado el archivo.
+    o "neutral". Este corresponde al nombre del directorio donde se
+    encuentra ubicado el archivo.
 
     Cada archivo tendria una estructura similar a la siguiente:
 
@@ -70,4 +70,98 @@ def pregunta_01():
     ```
 
 
-    """
+    """    # Importar las librerías necesarias
+    import os          # Para manejar rutas y directorios del sistema operativo
+    import pandas as pd    # Para crear y manejar DataFrames (tablas de datos)
+    import zipfile     # Para descomprimir archivos ZIP
+
+    # PASO 1: Descomprimir el archivo de datos
+    # Definir la ruta donde se encuentra el archivo ZIP con los datos
+    archivo_zip = 'files/input.zip'
+
+    # Verificar si el archivo ZIP existe y descomprimirlo
+    if os.path.exists(archivo_zip):
+        # Abrir el archivo ZIP en modo lectura
+        with zipfile.ZipFile(archivo_zip, 'r') as zip_archivo:
+            # Extraer todos los archivos del ZIP al directorio actual ('.')
+            zip_archivo.extractall('.')
+    else:
+        # Si el archivo no existe, mostrar error y terminar la función
+        print(f"Error: No se encontró el archivo {archivo_zip}")
+        return None, None
+
+    # PASO 2: Preparar la carpeta de salida
+    # Definir donde se guardarán los archivos CSV resultantes
+    carpeta_salida = 'files/output'
+    # Crear la carpeta si no existe (exist_ok=True evita error si ya existe)
+    os.makedirs(carpeta_salida, exist_ok=True)
+
+    # PASO 3: Definir los tipos de sentimientos que procesaremos
+    # Estos nombres corresponden a las subcarpetas dentro de train/ y test/
+    sentimientos = ['positive', 'negative', 'neutral']
+
+    # PASO 4: Procesar los datos de entrenamiento
+    # Crear una lista vacía para almacenar todos los datos de entrenamiento
+    datos_entrenamiento = []
+    
+    # Recorrer cada tipo de sentimiento (positive, negative, neutral)
+    for sentimiento in sentimientos:
+        # Construir la ruta a la carpeta de cada sentimiento en train
+        # Ejemplo: 'input/train/positive'
+        carpeta_sentimiento = os.path.join('input', 'train', sentimiento)
+        
+        # Recorrer todos los archivos en esta carpeta de sentimiento
+        for archivo_texto in os.listdir(carpeta_sentimiento):
+            # Solo procesar archivos que terminen en .txt
+            if archivo_texto.endswith('.txt'):
+                # Construir la ruta completa al archivo
+                # Ejemplo: 'input/train/positive/0000.txt'
+                ruta_archivo = os.path.join(carpeta_sentimiento, archivo_texto)
+                
+                # Abrir y leer el contenido del archivo de texto
+                with open(ruta_archivo, 'r') as archivo:
+                    # Leer todo el contenido y quitar espacios al inicio/final
+                    frase = archivo.read().strip()
+                    # Agregar un diccionario con la frase y su sentimiento a la lista
+                    datos_entrenamiento.append({'phrase': frase, 'target': sentimiento})
+
+    # Convertir la lista de diccionarios en un DataFrame de pandas
+    df_entrenamiento = pd.DataFrame(datos_entrenamiento)
+
+    # PASO 5: Procesar los datos de prueba (mismo proceso que entrenamiento)
+    # Crear una lista vacía para almacenar todos los datos de prueba
+    datos_prueba = []
+    
+    # Recorrer cada tipo de sentimiento (positive, negative, neutral)
+    for sentimiento in sentimientos:
+        # Construir la ruta a la carpeta de cada sentimiento en test
+        # Ejemplo: 'input/test/positive'
+        carpeta_sentimiento = os.path.join('input', 'test', sentimiento)
+        
+        # Recorrer todos los archivos en esta carpeta de sentimiento
+        for archivo_texto in os.listdir(carpeta_sentimiento):
+            # Solo procesar archivos que terminen en .txt
+            if archivo_texto.endswith('.txt'):
+                # Construir la ruta completa al archivo
+                # Ejemplo: 'input/test/positive/0000.txt'
+                ruta_archivo = os.path.join(carpeta_sentimiento, archivo_texto)
+                
+                # Abrir y leer el contenido del archivo de texto
+                with open(ruta_archivo, 'r') as archivo:
+                    # Leer todo el contenido y quitar espacios al inicio/final
+                    frase = archivo.read().strip()
+                    # Agregar un diccionario con la frase y su sentimiento a la lista
+                    datos_prueba.append({'phrase': frase, 'target': sentimiento})
+
+    # Convertir la lista de diccionarios en un DataFrame de pandas
+    df_prueba = pd.DataFrame(datos_prueba)
+
+    # PASO 6: Guardar los DataFrames como archivos CSV
+    # Guardar el dataset de entrenamiento como CSV (sin índices de fila)
+    df_entrenamiento.to_csv(os.path.join(carpeta_salida, 'train_dataset.csv'), index=False)
+    # Guardar el dataset de prueba como CSV (sin índices de fila)
+    df_prueba.to_csv(os.path.join(carpeta_salida, 'test_dataset.csv'), index=False)
+
+    # PASO 7: Retornar los DataFrames creados
+    # Devolver ambos DataFrames para que puedan ser utilizados si es necesario
+    return df_entrenamiento, df_prueba
